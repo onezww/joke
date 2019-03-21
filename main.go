@@ -218,6 +218,9 @@ func spider(wg *sync.WaitGroup) {
 	domain := "https://www.2717.com/"
 	module := "https://www.2717.com/ent/meinvtupian/"
 
+	client := &http.Client{}
+	var req *http.Request
+
 	defer close(MQ)
 	response, err := http.Get(module)
 	if err != nil {
@@ -245,7 +248,10 @@ func spider(wg *sync.WaitGroup) {
 		}
 		u.Path = path.Join(u.Path, "list_"+typeStr+"_"+strconv.Itoa(count)+".html")
 		reqUrl := u.String()
-		response, err := http.Get(reqUrl)
+		req, _ = http.NewRequest("GET", reqUrl, nil)
+		req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+		req.Header.Add("Host", "t1.hddhhn.com")
+		response, err := client.Do(req)
 		if err != nil {
 			panic(err)
 		}
