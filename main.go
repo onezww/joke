@@ -20,6 +20,7 @@ import (
 	iconv "github.com/djimenez/iconv-go"
 )
 
+// Config 配置结构体
 type Config struct {
 	GoCount         int
 	DirPath         string
@@ -177,6 +178,7 @@ func generateProject(wg *sync.WaitGroup) {
 			continue
 		}
 		imgFolder := path.Join(ConfigObj.ImgFolder, v.title)
+		// 生成每个相册的文件夹
 		os.MkdirAll(imgFolder, 0766)
 		loadImage(v.url, imgFolder)
 		RecodFile.Write([]byte(v.url + "\n"))
@@ -234,6 +236,31 @@ func spider(wg *sync.WaitGroup) {
 	fmt.Printf("%v\n", typeStr)
 	response.Body.Close()
 	sendDataToMQ(domain, doc, converter)
+	count := 1
+	for {
+		count++
+		u, err := url.Parse(module)
+		if err != nil {
+			return
+		}
+		u.Path = path.Join(u.Path, "list_"+typeStr+"_"+strconv.Itoa(count)+".html")
+		reqUrl := u.String()
+		response, err := http.Get(reqUrl)
+		if err != nil {
+			panic(err)
+		}
+		if response.StatusCode != 200 {
+			fmt.Println("哎呀，好像结束了")
+		}
+		doc, err := goquery.NewDocumentFromReader(response.Body)
+		if err != nil {
+			println("哎呀，goquery 解析出错啦")
+			panic(err)
+		}
+		response.Body.Close()
+		sendDataToMQ(domain, doc, converter)
+		println("翻页代码", reqUrl, count)
+	}
 }
 
 func main() {
