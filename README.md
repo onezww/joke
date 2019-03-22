@@ -1,6 +1,8 @@
 # 美女模特图片爬取
 
 ## 使用goquery写的一个爬虫项目
+- 使用channel模拟消息队列，传输下载信息
+- 使用文件记载已爬取过的相册,逻辑去重(个人项目就不引进Redis之类的,布隆过滤器稍显麻烦,这样简单)
 
 ## 配置信息
 ```
@@ -9,7 +11,8 @@
     "goCount": 10,
 
     // 保存目录
-    "dirPath": "F:\\test\\data",
+    "dirPath": "/destination/yourpath",
+
     // 图片保存文件夹名称
     "imgFolder": "imgs",
 
