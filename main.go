@@ -156,14 +156,14 @@ func loadImage(url string, dir string) bool {
 				req.Header.Add("Referer", reqUrl)
 				response, err := client.Do(req)
 				if err != nil {
-					println("下载图片失败， count加1")
+					println("下载图片失败", imgUrl, filename)
 					flag = false
 					count++
 					reqUrl = prefix + "_" + strconv.Itoa(count) + ".html"
 					continue
 				}
 				if response.StatusCode != 200 {
-					println("下载图片失败 非200， count加1")
+					println("下载图片失败 非200", imgUrl, filename)
 					flag = false
 					count++
 					reqUrl = prefix + "_" + strconv.Itoa(count) + ".html"
