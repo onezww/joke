@@ -116,24 +116,25 @@ func getTypeNum(doc *goquery.Document) string {
 }
 
 // 下载具体相册的图片
-func loadImage(url string, dir string) {
+func loadImage(url string, dir string) bool {
 	prefix := strings.Split(url, ".html")[0]
 	count := 1
 	reqUrl := url
 	client := &http.Client{}
+	flag := true // 代表该相册是否全部下载
 	for {
 		response, err := http.Get(reqUrl)
 		if err != nil {
-			print("come in err", err.Error())
-			return
+			return false
 		}
 		if response.StatusCode != 200 {
-			return
+			return flag
 		}
+		// goquery 解析出错，该相册直接跳过
 		doc, err := goquery.NewDocumentFromReader(response.Body)
 		if err != nil {
 			println("哎呀，goquery 解析出错啦", err.Error())
-			return
+			return false
 		}
 		imgUrl := ""
 		doc.Find("#picBody p a img:first-child").Each(func(i int, s *goquery.Selection) {
@@ -144,25 +145,37 @@ func loadImage(url string, dir string) {
 			imgUrl = src
 		})
 		if len(imgUrl) > 0 {
-			var req *http.Request
-			req, _ = http.NewRequest("GET", imgUrl, nil)
-			req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
-			req.Header.Add("Host", "t1.hddhhn.com")
-			req.Header.Add("Referer", reqUrl)
-			response, err := client.Do(req)
-			if err != nil {
-				println("图片请求失败了", imgUrl, err.Error())
-				return
-			}
-			if response.StatusCode != 200 {
-				return
-			}
-
 			filename := path.Join(dir, strconv.Itoa(count)+".jpg")
-			out, _ := os.Create(filename)
-			io.Copy(out, response.Body)
-			response.Body.Close()
-			println("图片下载完成", filename)
+			nextFilename := path.Join(dir, strconv.Itoa(count+1)+".jpg")
+			// 简单过滤相册里面的图片是否下载
+			if !util.IsPathExists(filename) || !util.IsPathExists(nextFilename) {
+				var req *http.Request
+				req, _ = http.NewRequest("GET", imgUrl, nil)
+				req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+				req.Header.Add("Host", "t1.hddhhn.com")
+				req.Header.Add("Referer", reqUrl)
+				response, err := client.Do(req)
+				if err != nil {
+					println("下载图片失败， count加1")
+					flag = false
+					count++
+					reqUrl = prefix + "_" + strconv.Itoa(count) + ".html"
+					continue
+				}
+				if response.StatusCode != 200 {
+					println("下载图片失败 非200， count加1")
+					flag = false
+					count++
+					reqUrl = prefix + "_" + strconv.Itoa(count) + ".html"
+					continue
+				}
+				out, _ := os.Create(filename)
+				io.Copy(out, response.Body)
+				response.Body.Close()
+				println("图片下载完成", filename)
+			} else {
+				println("该图片已下载", filename)
+			}
 		}
 		response.Body.Close()
 		count++
@@ -180,8 +193,10 @@ func generateProject(wg *sync.WaitGroup) {
 		imgFolder := path.Join(ConfigObj.ImgFolder, v.title)
 		// 生成每个相册的文件夹
 		os.MkdirAll(imgFolder, 0766)
-		loadImage(v.url, imgFolder)
-		RecodFile.Write([]byte(v.url + "\n"))
+		ok = loadImage(v.url, imgFolder)
+		if ok {
+			RecodFile.Write([]byte(v.url + "\n"))
+		}
 	}
 }
 
@@ -229,6 +244,7 @@ func spider(wg *sync.WaitGroup) {
 	if response.StatusCode != 200 {
 		fmt.Println("哎呀，好像结束了")
 	}
+	// 编码转换
 	converter, _ := iconv.NewConverter("gb2312", "utf-8")
 	doc, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
@@ -281,5 +297,7 @@ func main() {
 		go generateProject(&wait)
 	}
 	go spider(&wait)
+	// b, _ := url.Parse("http://www.baidu.com/hello/world")
+	// println(b.Path, b.RequestURI())
 	wait.Wait()
 }
