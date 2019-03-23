@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -286,7 +285,6 @@ func spider(wg *sync.WaitGroup) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(1)
 	var wait sync.WaitGroup
 	initConfig()
 	initURLSet(ConfigObj.RecordFile, UrlSet)
