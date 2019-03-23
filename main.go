@@ -295,7 +295,5 @@ func main() {
 		go generateProject(&wait)
 	}
 	go spider(&wait)
-	// b, _ := url.Parse("http://www.baidu.com/hello/world")
-	// println(b.Path, b.RequestURI())
 	wait.Wait()
 }
