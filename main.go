@@ -272,11 +272,12 @@ func spider(wg *sync.WaitGroup) {
 		}
 		if response.StatusCode != 200 {
 			fmt.Println("哎呀，好像结束了")
+			return
 		}
 		doc, err := goquery.NewDocumentFromReader(response.Body)
 		if err != nil {
-			println("哎呀，goquery 解析出错啦")
-			panic(err)
+			println("哎呀，goquery 解析出错啦", err.Error())
+			continue
 		}
 		response.Body.Close()
 		sendDataToMQ(domain, doc, converter)
